@@ -139,6 +139,18 @@ H = {
         "man meist mehr, wenn man den Betrag auf mehrere Jahre verteilt ('staffeln')."
     ),
     "einkauf_start": "Alter beim ersten Einkauf (Einzahlung jeweils gegen Ende Jahr).",
+    "opt_budget": (
+        "Wie viel Sie **pro Jahr insgesamt** sparen bzw. anlegen können – egal ob in die PK oder ins ETF. "
+        "Der Rechner verteilt jeden Franken dorthin, wo er bis zur Pensionierung netto mehr bringt."
+    ),
+    "opt_ab": (
+        "Ab welchem Alter Sie frühestens einkaufen möchten. Der Rechner prüft jedes Jahr von diesem Alter "
+        "bis zum letzten erlaubten Einkaufsjahr."
+    ),
+    "opt_sperrfrist": (
+        "Wenn Sie das PK-Guthaben als **Kapital** beziehen möchten, sind Einkäufe in den letzten 3 Jahren vor "
+        "dem Bezug nicht sinnvoll (Steuerabzug würde gestrichen). Häkchen entfernen, wenn Sie eine Rente beziehen."
+    ),
     # ETF
     "etf_rendite": (
         "Erwartete **Gesamtrendite** (Kursgewinne + Dividenden) vor Kosten pro Jahr. Ein globaler "
@@ -268,6 +280,23 @@ Beide Varianten kosten Sie heute **gleich viel Geld**:
 Verglichen wird das Nettovermögen bei der Pensionierung (bei Kapitalbezug).
 Je **kürzer** die Zeit bis zur Pensionierung und je **höher** Ihr Grenzsteuersatz, desto
 eher lohnt sich der Einkauf. Bei langen Zeiträumen gewinnt oft die höhere ETF-Rendite.
+""",
+    "optimierung": """
+**Wie viel Einkauf pro Jahr ist optimal?**
+
+Ein PK-Einkauf spart Steuern zum **Grenzsteuersatz**. Die ersten Franken eines Einkaufs sparen am
+meisten. Je mehr Sie im gleichen Jahr einkaufen, desto tiefer rutschen Sie in der Progression, und
+jeder weitere Franken spart weniger. Gleichzeitig steigt die (progressive) Kapitalbezugssteuer.
+
+Der Rechner verteilt Ihr jährliches Sparbudget deshalb **Tranche für Tranche** dorthin, wo sie mehr
+bringt:
+
+* **PK-Einkauf**, solange Steuerersparnis + PK-Zins − zusätzliche Kapitalbezugssteuer mehr ergeben als
+* **ETF** (Rendite nach Kosten, Dividenden- und Vermögenssteuer).
+
+Ergebnis: pro Jahr der Betrag, **ab dem sich ein weiterer Einkaufsfranken nicht mehr lohnt**. Der Rest
+(plus die Steuerersparnis) geht ins ETF. Typisch: früh wenig oder gar nicht einkaufen, kurz vor der
+Pensionierung (aber vor der 3-Jahres-Sperrfrist) mehr – und auf mehrere Jahre verteilen.
 """,
     "reduziert": """
 **Weniger in die PK – mehr ins ETF?**

@@ -86,3 +86,31 @@ def test_rente_vs_kapital():
     assert info["Rente netto"] < info["Rente brutto"]
     assert info["Break-even ohne Rendite"] is not None
     assert 75 < info["Break-even ohne Rendite"] < 100
+
+
+def _split(ret, budget=20_000, potential=100_000):
+    plan = pk.PensionPlan(balance=150_000, employee_savings=8_000, employer_savings=10_000, interest=2.0)
+    k0 = pk.final_capital(pk.project(plan, 45, 65))
+    return an.optimize_buyin_split(budget, list(range(0, 17)), 20, k0, 2.0, ctx(), an.EtfAssumptions(total_return=ret),
+                                   potential)
+
+
+def test_optimierung_tiefe_etf_rendite_kauft_voll_ein():
+    res = _split(0.0)
+    assert res.total_buyin == pytest.approx(100_000, abs=1)
+    assert res.value_opt >= res.value_etf
+
+
+def test_optimierung_hohe_etf_rendite_kaum_einkauf():
+    res = _split(10.0)
+    assert res.total_buyin <= 10_000
+    assert res.best_constant == 0
+
+
+def test_optimierung_ist_mindestens_so_gut_wie_extreme():
+    for ret in (3.0, 5.0, 7.0):
+        res = _split(ret)
+        assert res.value_opt >= res.value_etf - 1
+        assert res.value_opt >= res.value_max - 1
+        assert all(a <= 20_000 + 1e-6 for a in res.alloc.values())
+        assert res.total_buyin <= 100_000 + 1e-6

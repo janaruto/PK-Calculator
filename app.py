@@ -622,6 +622,95 @@ with tabs[2]:
             st.markdown(f"➡️ Mit Ihrem Einkaufsplan lohnt sich der Einkauf **ab einem steuerbaren Einkommen von ca. "
                         f"{chf(cross['Steuerbares Einkommen'].min())}**.")
 
+    st.divider()
+    title_with_info("3 · Wie viel Einkauf pro Jahr lohnt sich? – Sparbudget optimal aufteilen",
+                    INFO["optimierung"], key="i_opt")
+    if horizon <= 1 or potential <= 0:
+        st.info("Für die Optimierung braucht es ein **Einkaufspotenzial** (Seitenleiste) und mindestens 2 Jahre "
+                "bis zur Pensionierung.")
+    else:
+        c1, c2, c3 = st.columns(3)
+        budget = money_input("Sparbudget pro Jahr (CHF)", 20_000, "opt_budget", H["opt_budget"], container=c1)
+        respect_lock = c3.checkbox("3-Jahres-Sperrfrist beachten", True, help=H["opt_sperrfrist"])
+        last_age = retirement_age - 4 if respect_lock else retirement_age - 1
+        if last_age < age:
+            st.warning("Bis zur Pensionierung bleiben weniger als 4 Jahre – wegen der 3-Jahres-Sperrfrist ist kein "
+                       "Einkauf mit anschliessendem Kapitalbezug mehr möglich (nur noch als Rente).")
+        else:
+            from_age = int(c2.number_input("Einkauf frühestens ab Alter", age, last_age, age, help=H["opt_ab"]))
+            window = list(range(from_age - age, last_age - age + 1))
+            res = an.optimize_buyin_split(budget, window, horizon, capital_base, interest, ctx, etf, potential)
+            used = sorted(i for i, a in res.alloc.items() if a > 0)
+            if used:
+                st.success(
+                    f"**Optimal: total {chf(res.total_buyin)} einkaufen**, verteilt auf {len(used)} Jahr(e) "
+                    f"(Alter {age + used[0]}–{age + used[-1]}), im Schnitt **{chf(res.total_buyin / len(used))} pro "
+                    f"Einkaufsjahr**. Der Rest des Budgets ({chf(budget * len(window) - res.total_buyin)} total) plus "
+                    "die Steuerersparnis geht ins ETF.")
+            else:
+                st.warning("**Bei Ihren Annahmen lohnt sich kein Einkauf** – jeder Franken bringt im ETF mehr. "
+                           "Das ganze Budget ins ETF (oder Annahmen prüfen: ETF-Rendite, PK-Zins, Zeitraum).")
+            a, b, c, d = st.columns(4)
+            a.metric("Optimaler Einkauf total", chf(res.total_buyin), border=True,
+                     help="Summe aller Einkäufe im optimalen Plan (max. Einkaufspotenzial).")
+            b.metric("Vermögen bei Pensionierung", chf(res.value_opt), border=True,
+                     help="Was aus dem Sparbudget wird: zusätzliches PK-Kapital nach Kapitalbezugssteuer + ETF-Depot.")
+            c.metric("Mehrwert ggü. nur ETF", signed_chf(res.value_opt - res.value_etf), border=True,
+                     help="Optimaler Plan im Vergleich dazu, das ganze Budget ins ETF zu investieren.")
+            d.metric("Mehrwert ggü. max. Einkauf", signed_chf(res.value_opt - res.value_max), border=True,
+                     help="Optimaler Plan im Vergleich dazu, jedes Jahr das ganze Budget einzukaufen, "
+                          "bis das Einkaufspotenzial aufgebraucht ist.")
+
+            ages = [age + i for i in window]
+            pk_part = [res.alloc.get(i, 0.0) for i in window]
+            etf_part = [budget - x for x in pk_part]
+            fig = go.Figure()
+            fig.add_bar(x=ages, y=pk_part, name="PK-Einkauf", marker=dict(color=PK_COLOR, line=dict(width=1, color="white")),
+                        hovertemplate="Alter %{x}: PK-Einkauf CHF %{y:,.0f}<extra></extra>")
+            fig.add_bar(x=ages, y=etf_part, name="ins ETF", marker=dict(color=ETF_COLOR, line=dict(width=1, color="white")),
+                        hovertemplate="Alter %{x}: ETF CHF %{y:,.0f}<extra></extra>")
+            fig.update_layout(barmode="stack", legend_traceorder="normal")
+            style(fig, height=340, hover="x unified", x_title="Alter", y_title="CHF pro Jahr")
+            st.markdown("**Optimale Aufteilung Ihres Budgets pro Jahr**")
+            plot(fig, "opt_split")
+            st.caption("Blau = so viel lohnt sich im jeweiligen Jahr als PK-Einkauf (bis der nächste Franken im ETF "
+                       "mehr bringt), Orange = Rest ins ETF. Je näher die Pensionierung, desto attraktiver der Einkauf.")
+
+            cv = res.curve
+            fig = go.Figure()
+            fig.add_scatter(x=cv["Einkauf pro Jahr"], y=cv["Nettovermögen"], name="Nettovermögen bei Pensionierung",
+                            line=dict(color=C["blue"], width=2),
+                            hovertemplate="Einkauf CHF %{x:,.0f}/Jahr → CHF %{y:,.0f}<extra></extra>")
+            best_v = float(cv["Nettovermögen"].max())
+            fig.add_scatter(x=[res.best_constant], y=[best_v], mode="markers", name="Optimum",
+                            marker=dict(color=C["blue"], size=10, line=dict(width=2, color="white")),
+                            hovertemplate="Optimum: CHF %{x:,.0f}/Jahr<extra></extra>")
+            style(fig, height=320, hover="closest", x_title="Gleicher Einkauf jedes Jahr ab Alter "
+                  f"{from_age} (CHF)", y_title="Vermögen bei Pensionierung (CHF)")
+            st.markdown("**Variante: jedes Jahr gleich viel einkaufen**")
+            plot(fig, "opt_curve")
+            if res.best_constant > 0:
+                st.markdown(f"➡️ Wenn Sie **jedes Jahr gleich viel** einkaufen möchten (ab Alter {from_age}): optimal "
+                            f"sind ca. **{chf(res.best_constant)} pro Jahr** – mehr lohnt sich nicht, weniger verschenkt "
+                            "Steuerersparnis.")
+            else:
+                st.markdown(f"➡️ Ein gleichbleibender jährlicher Einkauf ab Alter {from_age} lohnt sich nicht. "
+                            "Besser: zuerst ETF, Einkäufe (falls überhaupt) erst in den Jahren gemäss Balkendiagramm.")
+
+            with st.expander("📋 Plan Jahr für Jahr"):
+                rows = []
+                for i in window:
+                    a_i = res.alloc.get(i, 0.0)
+                    s_i = res.savings.get(i, 0.0)
+                    rows.append({"Alter": age + i, "Budget": budget, "PK-Einkauf": a_i, "Steuerersparnis": s_i,
+                                 "Ins ETF (inkl. Ersparnis)": budget - a_i + s_i,
+                                 "Grenzsteuersatz danach %": tx.marginal_income_rate(
+                                     max(ctx.income_at(i) - a_i, 0), profile, bund_offset=income_bund - income) * 100})
+                table(pd.DataFrame(rows), money=("Budget", "PK-Einkauf", "Steuerersparnis", "Ins ETF (inkl. Ersparnis)"),
+                      pcts=("Grenzsteuersatz danach %",), hide_index=True)
+            st.caption("Diese Optimierung ist unabhängig vom 'Geplanten Einkauf' in der Seitenleiste. Annahmen zu "
+                       "ETF-Rendite, PK-Zins und Steuern wie links eingestellt. Gleiches steuerbares Einkommen in allen Jahren.")
+
     st.markdown("#### ✅ Checkliste vor dem Einkauf")
     st.markdown(
         "- Zuerst **Säule 3a** ausschöpfen (2026: max. CHF 7'258) – flexibler und ebenfalls abzugsfähig.\n"

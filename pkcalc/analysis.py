@@ -543,3 +543,123 @@ def annuity_vs_capital(
         "Break-even mit Rendite": be_return,
     }
     return pd.DataFrame(rows), info
+
+
+# ---------------------------------------------------------------------------
+# Optimale Aufteilung eines Sparbudgets: PK-Einkauf vs. ETF
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class SplitResult:
+    window: list  # Jahresindizes, in denen eingekauft werden darf
+    alloc: dict  # optimaler Einkauf je Jahresindex
+    savings: dict  # Steuerersparnis je Jahresindex
+    value_opt: float  # Zusatzvermögen bei Pensionierung (netto) – optimal
+    value_etf: float  # … nur ETF
+    value_max: float  # … so viel Einkauf wie möglich
+    curve: pd.DataFrame  # gleicher Einkauf jedes Jahr -> Nettovermögen
+    best_constant: float  # bester gleichbleibender Einkauf pro Jahr
+
+    @property
+    def total_buyin(self) -> float:
+        return sum(self.alloc.values())
+
+
+def evaluate_split(alloc: dict, budget: float, horizon: int, window: list, pk_capital_without: float,
+                   pk_interest: float, ctx: TaxContext, etf: EtfAssumptions) -> tuple[float, dict]:
+    """Nettovermögen bei Pensionierung, das aus dem Sparbudget entsteht.
+
+    Jedes Jahr im Fenster steht ``budget`` zur Verfügung: ``alloc[i]`` geht als Einkauf in die PK,
+    der Rest plus die Steuerersparnis ins ETF. Ergebnis = zusätzliches PK-Nettokapital + ETF-Depot.
+    """
+    r = pk_interest / 100.0
+    cfs = [0.0] * horizon
+    savings, extra = {}, 0.0
+    for i in window:
+        a = alloc.get(i, 0.0)
+        savings[i] = buyin_tax_saving(ctx, a, i) if a > 0 else 0.0
+        extra += a * (1 + r) ** (horizon - 1 - i)
+        cfs[i] += budget - a + savings[i]
+    pk_gain = extra - (ctx.cap_tax(pk_capital_without + extra) - ctx.cap_tax(pk_capital_without))
+    return pk_gain + etf_final(cfs, ctx, etf), savings
+
+
+def _fill(amount_per_year: float, window: list, potential: float) -> dict:
+    out, left = {}, potential
+    for i in window:
+        a = min(amount_per_year, left)
+        if a <= 0:
+            break
+        out[i] = a
+        left -= a
+    return out
+
+
+def optimize_buyin_split(
+    budget: float, window: list, horizon: int, pk_capital_without: float, pk_interest: float,
+    ctx: TaxContext, etf: EtfAssumptions, potential: float, curve_points: int = 26,
+) -> SplitResult:
+    """Teilt ein jährliches Sparbudget optimal auf PK-Einkauf und ETF auf.
+
+    Greedy in Tranchen: Jede Tranche geht in das Jahr, in dem ein zusätzlicher Einkaufsfranken
+    am meisten Mehrwert gegenüber dem ETF bringt (Steuerersparnis zum Grenzsteuersatz, PK-Zins,
+    zusätzliche progressive Kapitalbezugssteuer vs. ETF-Wachstum nach Kosten und Steuern).
+    Die Steuerersparnis sinkt mit jedem Franken (Progression) – deshalb gibt es ein Optimum.
+    """
+    window = [i for i in window if 0 <= i < horizon]
+    cap = max(0.0, min(potential, budget * len(window)))
+    if budget <= 0 or not window or cap <= 0:
+        v, _ = evaluate_split({}, budget, horizon, window, pk_capital_without, pk_interest, ctx, etf)
+        return SplitResult(window, {}, {}, v, v, v, pd.DataFrame({"Einkauf pro Jahr": [0.0], "Nettovermögen": [v]}), 0.0)
+
+    # Grenz-Wachstumsfaktor des ETF je Einzahlungsjahr (inkl. Kosten, Dividenden- und Vermögenssteuer)
+    base_cfs = [budget if i in window else 0.0 for i in range(horizon)]
+    base_val = etf_final(base_cfs, ctx, etf)
+    delta = max(1000.0, budget * 0.1)
+    growth_etf = {}
+    for i in window:
+        cfs = list(base_cfs)
+        cfs[i] -= delta  # Grenzbetrachtung: ein Franken weniger im ETF
+        growth_etf[i] = (base_val - etf_final(cfs, ctx, etf)) / delta
+    r = pk_interest / 100.0
+    growth_pk = {i: (1 + r) ** (horizon - 1 - i) for i in window}
+
+    step = max(500.0, round(min(budget, cap) / 40.0, -2))
+    alloc = {i: 0.0 for i in window}
+    total, extra = 0.0, 0.0
+    cap_tax_now = ctx.cap_tax(pk_capital_without)
+    while total < cap - 1:
+        best = None
+        for i in window:
+            room = min(step, budget - alloc[i], cap - total)
+            if room <= 1:
+                continue
+            d_sav = buyin_tax_saving(ctx, alloc[i] + room, i) - buyin_tax_saving(ctx, alloc[i], i)
+            new_cap_tax = ctx.cap_tax(pk_capital_without + extra + room * growth_pk[i])
+            gain = room * growth_pk[i] - (new_cap_tax - cap_tax_now) - (room - d_sav) * growth_etf[i]
+            if best is None or gain / room > best[0]:
+                best = (gain / room, i, room, new_cap_tax)
+        if best is None or best[0] <= 0:
+            break
+        _, i, room, new_cap_tax = best
+        alloc[i] += room
+        total += room
+        extra += room * growth_pk[i]
+        cap_tax_now = new_cap_tax
+    alloc = {i: a for i, a in alloc.items() if a > 0}
+
+    args = (budget, horizon, window, pk_capital_without, pk_interest, ctx, etf)
+    v_opt, savings = evaluate_split(alloc, *args)
+    v_etf, _ = evaluate_split({}, *args)
+    v_max, _ = evaluate_split(_fill(budget, window, cap), *args)
+
+    rows = []
+    upper = min(budget, cap)
+    for k in range(curve_points):
+        b = upper * k / (curve_points - 1)
+        v, _ = evaluate_split(_fill(b, window, cap), *args)
+        rows.append({"Einkauf pro Jahr": b, "Nettovermögen": v})
+    curve = pd.DataFrame(rows)
+    best_constant = float(curve.loc[curve["Nettovermögen"].idxmax(), "Einkauf pro Jahr"])
+    return SplitResult(window, alloc, savings, v_opt, v_etf, v_max, curve, best_constant)

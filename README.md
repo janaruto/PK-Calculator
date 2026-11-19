@@ -12,7 +12,7 @@ Info-Buttons erklärt, auch für PK-Laien.
 |---|---|
 | 🧾 **Steuern heute** | Einkommens- und Vermögenssteuer für Bund, Kanton, Gemeinde und Kirche. Dazu Grenz- und Durchschnittssteuersatz (mit Kurve), eine Tabelle der Kapitalbezugssteuer und ein Vergleich aller Gemeinden im Kanton |
 | 🏦 **PK-Vermögensaufbau** | Hochrechnung bis zur Pensionierung (Beiträge AN/AG, Zinsen, Einkäufe), die Zusammensetzung des Kapitals, Rente vs. Kapital mit Break-even-Alter und ein CSV-Export |
-| 💡 **Einkauf – lohnt es sich?** | Steuerersparnis des Einkaufs, Wirkung der Progression, Staffelung über mehrere Jahre und der Vergleich Einkauf vs. ETF. Dazu **ab welchem Alter** und **ab welchem Einkommen** sich ein Einkauf lohnt, die Break-even-Rendite und die effektive Rendite des Einkaufs |
+| 💡 **Einkauf – lohnt es sich?** | Steuerersparnis des Einkaufs, Wirkung der Progression, Staffelung über mehrere Jahre und der Vergleich Einkauf vs. ETF. Dazu **ab welchem Alter** und **ab welchem Einkommen** sich ein Einkauf lohnt, die Break-even-Rendite und die effektive Rendite des Einkaufs. Ein **Optimierer** teilt ein jährliches Sparbudget optimal auf PK-Einkauf und ETF auf: wie viel Einkauf pro Jahr sich lohnt und ab wann der Rest besser ins ETF geht |
 | ⚖️ **PK vs. ETF** | Weniger in die PK einzahlen (z.B. Wahlplan) und die Differenz nach Steuern ins ETF investieren. Mit Sensitivität zur ETF-Rendite |
 | 🔀 **Zwei PKs vergleichen** | Zwei Pensionskassen oder Sparpläne vergleichen, z.B. bei einem Stellenwechsel. Ein Lohnunterschied ist möglich, und die Nettolohn-Differenz wird fair im ETF angelegt |
 | 📚 **Lexikon** | Alle Begriffe einfach erklärt (Umwandlungssatz, Koordinationsabzug, Sperrfrist …) |
