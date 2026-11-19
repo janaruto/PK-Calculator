@@ -32,6 +32,19 @@ PK_COLOR, ETF_COLOR = C["blue"], C["orange"]
 
 
 _NO_ARROW = {"delta_arrow": "off"} if "delta_arrow" in inspect.signature(st.metric).parameters else {}
+_POPOVER_PARAMS = set(inspect.signature(st.popover).parameters)
+
+
+def popover(label: str, container=st, key: str | None = None):
+    """st.popover in voller Breite – kompatibel mit älteren Streamlit-Versionen."""
+    kw = {}
+    if "width" in _POPOVER_PARAMS:
+        kw["width"] = "stretch"
+    elif "use_container_width" in _POPOVER_PARAMS:
+        kw["use_container_width"] = True
+    if key and "key" in _POPOVER_PARAMS:
+        kw["key"] = key
+    return container.popover(label, **kw)
 
 
 def signed_chf(x: float) -> str:
@@ -87,7 +100,7 @@ def plot(fig: go.Figure, key: str) -> None:
 def title_with_info(title: str, info_md: str, level: int = 3, key: str | None = None) -> None:
     c1, c2 = st.columns([0.8, 0.2], vertical_alignment="center")
     c1.markdown(f"{'#' * level} {title}")
-    with c2.popover("ℹ️ Erklärung", width="stretch", key=key):
+    with popover("ℹ️ Erklärung", c2, key):
         st.markdown(info_md)
 
 
@@ -169,7 +182,7 @@ with sb.expander("🧾 Steuern & Wohnort", expanded=True):
                               H["einkommen_bund"]) if bund_diff else income
     wealth = money_input("Reinvermögen (CHF)", 150_000, "wealth", H["vermoegen"], step=5000)
     apply_wd = st.checkbox("Kantonale Vermögens-Freibeträge abziehen", value=True, help=H["freibetrag"])
-    with st.popover("⚙️ Steuerfüsse Vermögen", width="stretch"):
+    with popover("⚙️ Steuerfüsse Vermögen"):
         st.caption("In den meisten Gemeinden gleich wie beim Einkommen.")
         w_canton = st.number_input("Kanton % (Vermögen)", 0.0, 400.0, float(loc.wealth_canton), 1.0,
                                    key=f"wk_{k}")
@@ -177,7 +190,7 @@ with sb.expander("🧾 Steuern & Wohnort", expanded=True):
                                  key=f"wg_{k}")
         w_church = st.number_input("Kirche % (Vermögen)", 0.0, 100.0,
                                    float(loc.wealth_church.get(confession, 0.0)), 0.5, key=f"wc_{k}")
-    with st.popover("⚙️ Kapitalbezugssteuer anpassen", width="stretch"):
+    with popover("⚙️ Kapitalbezugssteuer anpassen"):
         st.caption(H["kap_korrektur"])
         cap_corr = st.number_input("Kanton/Gemeinde in % des berechneten Werts", 10, 200, 100, 5,
                                    key=f"capcorr_{canton.id}", help=H["kap_korrektur"])
