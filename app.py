@@ -6,6 +6,7 @@ Start:  streamlit run app.py
 from __future__ import annotations
 
 import inspect
+from datetime import date
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -116,9 +117,22 @@ sb.caption("Alle Felder mit ❔ haben eine Erklärung (Maus darüber bzw. antipp
 
 with sb.expander("👤 Person", expanded=True):
     age = int(st.number_input("Alter heute", 18, 69, 45, help=H["alter"]))
-    retirement_age = int(st.number_input("Pensionierungsalter", max(age + 1, 58), 70, max(65, age + 1),
-                                         help=H["rentenalter"]))
-    zivil = st.selectbox("Zivilstand", ["Alleinstehend", "Verheiratet / eingetr. Partnerschaft"],
+    horizon_mode = st.radio("Zeithorizont angeben als", ["Pensionierungsalter", "Verbleibende Arbeitsjahre"],
+                            horizontal=True, help=H["horizont"], key="horizon_mode")
+    if horizon_mode == "Verbleibende Arbeitsjahre":
+        years_left = int(st.number_input("Verbleibende Arbeitsjahre", 1, 70 - age, max(1, 65 - age),
+                                         help=H["arbeitsjahre"]))
+        retirement_age = age + years_left
+    else:
+        retirement_age = int(st.number_input("Pensionierungsalter", max(age + 1, 58), 70, max(65, age + 1),
+                                             help=H["rentenalter"]))
+    st.caption(f"⏳ Noch **{retirement_age - age} Arbeitsjahre**: Pensionierung mit {retirement_age} "
+               f"im Jahr {date.today().year + retirement_age - age}.")
+    if retirement_age < 58:
+        st.info("Vor 58 ist eine Pensionierung in der PK meist nicht möglich. Bei Erwerbsaufgabe geht das "
+                "Guthaben auf ein Freizügigkeitskonto (Bezug frühestens 5 Jahre vor dem AHV-Alter). "
+                "Die Rechnung nimmt vereinfacht einen Bezug am Ende der Arbeitsjahre an.")
+    zivil =st.selectbox("Zivilstand", ["Alleinstehend", "Verheiratet / eingetr. Partnerschaft"],
                          help=H["zivilstand"])
     married = zivil.startswith("Verheiratet")
     children = int(st.number_input("Anzahl Kinder", 0, 10, 0, help=H["kinder"]))
@@ -272,7 +286,8 @@ m1.metric("Steuern pro Jahr", chf(tax_income.total + tax_wealth.total), border=T
           help="Einkommens- und Vermögenssteuer: Bund + Kanton + Gemeinde + Kirche")
 m2.metric("Grenzsteuersatz", pct(marg), border=True,
           help="So viel Steuern sparen Sie pro abgezogenem Franken (z.B. PK-Einkauf).")
-m3.metric(f"PK-Kapital mit {retirement_age}", chf(capital), border=True,
+m3.metric(f"PK-Kapital mit {retirement_age}", chf(capital), f"in {horizon} Arbeitsjahren", delta_color="off",
+          **_NO_ARROW, border=True,
           help="Hochgerechnetes Altersguthaben inkl. geplanter Einkäufe")
 m4.metric("Steuerersparnis Einkauf", chf(buy_cmp.total_savings), border=True,
           help="Summe der Einkommenssteuer-Ersparnis aller geplanten Einkäufe")
@@ -571,7 +586,11 @@ with tabs[2]:
             fig.add_vrect(x0=retirement_age - 3.5, x1=retirement_age - 0.5, fillcolor=C["muted"], opacity=0.12,
                           line_width=0, annotation_text="3-J.-Sperrfrist Kapitalbezug",
                           annotation_position="bottom left", annotation_font_color=C["muted"])
-        style(fig, height=360, hover="closest", x_title="Alter beim Einkauf", y_title="Vorteil Einkauf vs. ETF (CHF)")
+        style(fig, height=380, hover="closest", x_title="Alter beim Einkauf (verbleibende Arbeitsjahre)",
+              y_title="Vorteil Einkauf vs. ETF (CHF)")
+        step = 1 if horizon <= 12 else 5 if horizon > 25 else 2
+        ticks = [a for a in by_age["Einkaufsalter"] if (retirement_age - a) % step == 0 or a == age]
+        fig.update_xaxes(tickvals=ticks, ticktext=[f"{a}<br>({retirement_age - a} J.)" for a in ticks])
         fig.add_hline(y=0, line=dict(color=C["muted"], width=1))
         plot(fig, "by_age")
         if len(pos) and len(pos) < len(by_age):

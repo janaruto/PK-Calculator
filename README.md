@@ -53,6 +53,7 @@ pytest
 
 * **Eingabe** ist das *steuerbare* Einkommen gemäss Steuererklärung. Die heutigen PK-Lohnabzüge sind darin
   bereits abgezogen. Für die Bundessteuer kann ein abweichender Wert erfasst werden.
+* **Zeithorizont**: wahlweise über das Pensionierungsalter oder direkt über die verbleibenden Arbeitsjahre.
 * **PK**: Beiträge und Einkäufe werden Ende Jahr gutgeschrieben. Verzinst wird das Guthaben zu Jahresbeginn,
   mit konstantem Zins- und Umwandlungssatz. Die Beiträge sind als Fixbeträge oder als Altersstaffel erfassbar.
 * **Einkauf vs. ETF**: Beide Varianten setzen gleich viel eigenes Geld ein. Bei der PK fällt die zusätzliche,

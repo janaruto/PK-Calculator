@@ -8,6 +8,16 @@ H = {
         "Viele Pensionskassen erlauben eine Frühpensionierung ab 58 – dann ist das Kapital "
         "kleiner und der Umwandlungssatz meist tiefer."
     ),
+    "horizont": (
+        "Wählen Sie, ob Sie das **Pensionierungsalter** oder direkt die **Anzahl verbleibender "
+        "Arbeitsjahre** eingeben möchten. Beides ergibt den Zeitraum, über den Beiträge, Zinsen und "
+        "Einkäufe hochgerechnet werden."
+    ),
+    "arbeitsjahre": (
+        "Wie viele Jahre Sie noch arbeiten und in die Pensionskasse einzahlen. Pensionierungsalter = "
+        "heutiges Alter + Arbeitsjahre. Je weniger Jahre bleiben, desto eher lohnt sich ein PK-Einkauf "
+        "(kürzere Bindung, Steuervorteil wiegt stärker)."
+    ),
     "zivilstand": (
         "Verheiratete (und eingetragene Partnerschaften) werden gemeinsam besteuert und erhalten "
         "einen tieferen Tarif bzw. Splitting. Konkubinatspaare gelten steuerlich als alleinstehend."
