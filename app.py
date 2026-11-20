@@ -176,7 +176,7 @@ with sb.expander("🧾 Steuern & Wohnort", expanded=True):
                                 key=f"sg_{k}", help=H["sf_gemeinde"])
     rate_church = st.number_input("Kirchensteuerfuss %", 0.0, 100.0, float(loc.income_church.get(confession, 0.0)),
                                   0.5, key=f"sc_{k}", help=H["sf_kirche"])
-    income = money_input("Steuerbares Einkommen (CHF/Jahr)", 120_000, "income", H["einkommen"])
+    income = money_input("Steuerbares Einkommen (CHF/Jahr)", 100_000, "income", H["einkommen"])
     bund_diff = st.checkbox("Steuerbares Einkommen Bund weicht ab", help=H["einkommen_bund"])
     income_bund = money_input("Steuerbares Einkommen Bund", income + 2_000, "income_bund",
                               H["einkommen_bund"]) if bund_diff else income
